@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<!-- saved from url=(0388)https://www.edchat.sa.edu.au/cdn/788224da-2e75-4a64-8ee9-be4e6390520d/original?sv=2026-06-06&spr=https&st=2026-11-03T23%3A31%3A02Z&se=2026-11-03T23%3A51%3A02Z&skoid=c0c37888-a918-413d-8158-27529390f604&sktid=73bbf4e9-0688-4946-aea9-bd0bb40ecf07&skt=2026-11-03T23%3A16%3A52Z&ske=2026-11-04T00%3A21%3A52Z&sks=b&skv=2026-06-06&sr=b&sp=r&sig=FQa9qsm7bsG9SORgs9l%2Btz%2BamYXMepwSll0FUhxduNI%3D -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plant Defense</title>
+  <style>
+    :root {
+      --bg: #dff3bf;
+      --panel: #6b8f3b;
+      --panel-dark: #4d6d28;
+      --slot: #e8d59b;
+      --slot-dark: #b08a43;
+      --text: #17310f;
+    }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #b8e986 0%, #dff3bf 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+      min-height: 100vh;
+    }
+    .wrap { width: min(100%, 1100px); }
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .hud {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255,255,255,0.55);
+      border: 2px solid rgba(0,0,0,0.08);
+      border-radius: 16px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+    .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .stat {
+      background: white;
+      border-radius: 12px;
+      padding: 8px 12px;
+      border: 1px solid rgba(0,0,0,0.08);
+      min-width: 88px;
+    }
+    .stat strong { display:block; font-size: 12px; opacity: 0.75; }
+    .stat span { font-size: 20px; font-weight: 700; }
+
+    /* Mobile-style seed bank */
+    .seedbank {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel-dark) 100%);
+      border: 3px solid rgba(0,0,0,0.18);
+      border-radius: 18px;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.12), 0 8px 20px rgba(0,0,0,0.12);
+    }
+    .seed {
+      width: 120px;
+      min-height: 78px;
+      border: 3px solid var(--slot-dark);
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f3e2b2 0%, var(--slot) 100%);
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.4), 0 4px 10px rgba(0,0,0,0.15);
+      cursor: pointer;
+      padding: 8px 10px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    .seed:hover { transform: translateY(-1px); }
+    .seed.selected {
+      outline: 4px solid rgba(255,255,255,0.8);
+      box-shadow: 0 0 0 3px rgba(46,125,50,0.28), 0 4px 12px rgba(0,0,0,0.18);
+    }
+    .seed:disabled {
+      filter: grayscale(0.4);
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .seed .name { font-size: 15px; font-weight: 700; }
+    .seed .desc { font-size: 11px; line-height: 1.2; opacity: 0.85; }
+    .seed .cost {
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+      background: rgba(255,255,255,0.32);
+      border-radius: 999px;
+      padding: 2px 8px;
+      align-self: flex-end;
+    }
+
+    .gamebox {
+      position: relative;
+      background: rgba(255,255,255,0.35);
+      border-radius: 18px;
+      padding: 14px;
+      border: 2px solid rgba(0,0,0,0.08);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #a9df5b 0%, #8fcd4f 100%);
+      cursor: crosshair;
+    }
+    .hint {
+      margin-top: 10px;
+      font-size: 14px;
+      opacity: 0.86;
+      line-height: 1.4;
+    }
+    .overlay {
+      position: absolute;
+      inset: 14px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+    }
+    .overlay.show { display: flex; }
+    .message {
+      background: white;
+      border-radius: 18px;
+      padding: 24px 28px;
+      text-align: center;
+      max-width: 380px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+    }
+    .message h2 { margin: 0 0 10px; }
+    .message p { margin: 0 0 16px; }
+    .actions { display:flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .actions button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: #2e7d32;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .actions button.secondary { background: #546e7a; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="hud">
+        <div class="stats">
+          <div class="stat"><strong>Sun</strong><span id="sun">200</span></div>
+          <div class="stat"><strong>Wave</strong><span id="wave">1</span></div>
+          <div class="stat"><strong>Lives</strong><span id="lives">5</span></div>
+          <div class="stat"><strong>Status</strong><span id="status" style="font-size:18px;">Ready</span></div>
+        </div>
+      </div>
+      <div class="seedbank">
+        <button class="seed selected" id="peaCard" data-plant="peashooter">
+          <div class="name">Peashooter</div>
+          <div class="desc">Shoots at rubbish piles in its lane.</div>
+          <div class="cost">100</div>
+        </button>
+        <button class="seed" id="sunCard" data-plant="sunflower">
+          <div class="name">Sunflower</div>
+          <div class="desc">Gives sun every few seconds.</div>
+          <div class="cost">50</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="gamebox">
+      <canvas id="game" width="1040" height="560"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="message">
+          <h2 id="endTitle">Game Over</h2>
+          <p id="endText">A rubbish pile reached your house.</p>
+          <div class="actions">
+            <button id="restartBtn">Play Again</button>
+            <button class="secondary" id="practiceBtn">Practice Mode</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint">
+        Click a seed packet, then click a square to place it. Sun is auto-collected. Survive all 5 waves to win.
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const sunEl = document.getElementById('sun');
+  const waveEl = document.getElementById('wave');
+  const livesEl = document.getElementById('lives');
+  const statusEl = document.getElementById('status');
+  const overlay = document.getElementById('overlay');
+  const endTitle = document.getElementById('endTitle');
+  const endText = document.getElementById('endText');
+  const restartBtn = document.getElementById('restartBtn');
+  const practiceBtn = document.getElementById('practiceBtn');
+  const peaCard = document.getElementById('peaCard');
+  const sunCard = document.getElementById('sunCard');
+
+  const W = canvas.width, H = canvas.height;
+  const cols = 9, rows = 5;
+  const gridLeft = 80, gridTop = 60;
+  const cellW = 95, cellH = 90;
+  const MAX_WAVES = 5;
+
+  const costs = { peashooter: 100, sunflower: 50 };
+  const plantHp = { peashooter: 640, sunflower: 80 };
+
+  let selectedPlant = 'peashooter';
+  let gameOver = false;
+  let won = false;
+  let practiceMode = false;
+  let sun = 200;
+  let lives = 5;
+  let wave = 1;
+  let lastTime = 0;
+  let spawnTimer = 0;
+  let waveTimer = 0;
+  let waveSpawned = 0;
+  let waveTarget = 0;
+  let nextWaveDelay = 1800;
+  let waveActive = true;
+  let ambientSunTimer = 0;
+
+  const plants = [];
+  const rubbish = []; // formerly rubbish piles
+  const peas = [];
+  const suns = [];
+  const occupied = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+  function resetGame(isPractice = false) {
+    practiceMode = isPractice;
+    gameOver = false;
+    won = false;
+    sun = 200;
+    lives = 5;
+    wave = 1;
+    lastTime = 0;
+    spawnTimer = 0;
+    waveTimer = 0;
+    waveSpawned = 0;
+    waveTarget = 7;
+    nextWaveDelay = 1800;
+    waveActive = true;
+    ambientSunTimer = 0;
+    plants.length = 0;
+    rubbish.length = 0;
+    peas.length = 0;
+    suns.length = 0;
+    for (let r = 0; r < rows; r++) occupied[r].fill(null);
+    overlay.classList.remove('show');
+    statusEl.textContent = 'Ready';
+    updateUI();
+  }
+
+  function updateUI() {
+    sunEl.textContent = Math.floor(sun);
+    waveEl.textContent = wave;
+    livesEl.textContent = lives;
+    peaCard.disabled = sun < costs.peashooter;
+    sunCard.disabled = sun < costs.sunflower;
+  }
+
+  function setSelected(plant) {
+    selectedPlant = plant;
+    peaCard.classList.toggle('selected', plant === 'peashooter');
+    sunCard.classList.toggle('selected', plant === 'sunflower');
+  }
+
+  peaCard.addEventListener('click', () => setSelected('peashooter'));
+  sunCard.addEventListener('click', () => setSelected('sunflower'));
+
+  function gridPosFromMouse(x, y) {
+    const gx = Math.floor((x - gridLeft) / cellW);
+    const gy = Math.floor((y - gridTop) / cellH);
+    if (gx < 0 || gx >= cols || gy < 0 || gy >= rows) return null;
+    return { gx, gy };
+  }
+
+  function spawnRubbish() {
+    const row = Math.floor(Math.random() * rows);
+    const hp = (110 + wave * 12) * 3;
+    const isTrashy = Math.random() < 0.6; // chance any rubbish pile-related thing becomes rubbish
+    rubbish.push({
+      x: W + 45,
+      y: gridTop + row * cellH + cellH / 2,
+      row,
+      hp,
+      maxHp: hp,
+      speed: (13 + wave * 0.45) * 3.8,
+      biteCooldown: 0,
+      trashy: isTrashy
+    });
+  }
+
+  function spawnSun(x, y, amount = 25) {
+    suns.push({ x, y, vy: 0, t: 0, amount, age: 0, collected: false });
+  }
+
+  function placePlant(gx, gy) {
+    if (gameOver) return;
+    if (occupied[gy][gx]) return;
+    const type = selectedPlant;
+    const cost = costs[type];
+    if (sun < cost) {
+      statusEl.textContent = 'Need more sun';
+      return;
+    }
+    sun -= cost;
+    const plant = {
+      type,
+      gx,
+      gy,
+      x: gridLeft + gx * cellW + cellW / 2,
+      y: gridTop + gy * cellH + cellH / 2,
+      hp: plantHp[type],
+      maxHp: plantHp[type],
+      cooldown: 0,
+      sunTimer: 0
+    };
+    plants.push(plant);
+    occupied[gy][gx] = plant;
+    statusEl.textContent = `${type} placed`;
+    updateUI();
+  }
+
+  canvas.addEventListener('click', (e) => {
+    if (gameOver) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const pos = gridPosFromMouse(mx, my);
+    if (pos) placePlant(pos.gx, pos.gy);
+  });
+
+  restartBtn.addEventListener('click', () => resetGame(false));
+  practiceBtn.addEventListener('click', () => resetGame(true));
+
+  let currentMouse = null;
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    currentMouse = {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  });
+  canvas.addEventListener('mouseleave', () => currentMouse = null);
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function startNextWave() {
+    if (wave >= MAX_WAVES) {
+      if (rubbish.length === 0) endGame(true);
+      return;
+    }
+    wave += 1;
+    waveSpawned = 0;
+    waveTarget = 6 + wave * 2;
+    waveActive = true;
+    spawnTimer = 0;
+    waveTimer = 0;
+    statusEl.textContent = 'Wave ' + wave;
+    updateUI();
+  }
+
+  function endGame(victory) {
+    gameOver = true;
+    won = victory;
+    overlay.classList.add('show');
+    endTitle.textContent = victory ? 'You Win!' : 'Game Over';
+    endText.textContent = victory
+      ? 'You survived all 5 waves of rubbish piles.'
+      : 'A rubbish pile reached your house.';
+  }
+
+  function update(dt) {
+    if (gameOver) return;
+
+    waveTimer += dt;
+    ambientSunTimer += dt;
+
+    // finite waves
+    if (waveActive) {
+      const spawnInterval = Math.max(1100, 2400 - wave * 220);
+      spawnTimer += dt;
+      while (spawnTimer >= spawnInterval && waveSpawned < waveTarget) {
+        spawnTimer -= spawnInterval;
+        spawnRubbish();
+        waveSpawned += 1;
+        if (Math.random() < 0.42) spawnRubbish();
+      }
+      if (waveSpawned >= waveTarget && rubbish.length === 0) {
+        waveActive = false;
+        waveTimer = 0;
+      }
+    } else {
+      if (waveTimer >= nextWaveDelay) startNextWave();
+    }
+
+    // auto-collected sun: it disappears after a short time and is awarded automatically
+    if (ambientSunTimer >= 4200) {
+      ambientSunTimer = 0;
+      spawnSun(140 + Math.random() * 760, 40 + Math.random() * 110, 25);
+    }
+
+    // Plants
+    for (const p of plants) {
+      if (p.type === 'sunflower') {
+        p.sunTimer += dt;
+        if (p.sunTimer >= 4500) {
+          p.sunTimer = 0;
+          spawnSun(p.x + 10, p.y - 26, 25);
+        }
+      } else if (p.type === 'peashooter') {
+        p.cooldown -= dt;
+        const rubbishInLane = rubbish.find(z => z.row === p.gy && z.x > p.x - 10);
+        if (rubbishInLane && p.cooldown <= 0) {
+          peas.push({ x: p.x + 26, y: p.y - 5, vx: 300, damage: 38 });
+          p.cooldown = 1200;
+        }
+      }
+    }
+
+    // Peas
+    for (let i = peas.length - 1; i >= 0; i--) {
+      const pea = peas[i];
+      pea.x += pea.vx * dt / 1000;
+      let hit = false;
+      for (const z of rubbish) {
+        if (z.row === Math.floor((pea.y - gridTop) / cellH)) {
+          if (Math.abs(z.x - pea.x) < 22 && Math.abs(z.y - pea.y) < 26) {
+            z.hp -= pea.damage;
+            hit = true;
+            break;
+          }
+        }
+      }
+      if (pea.x > W + 20 || hit) peas.splice(i, 1);
+    }
+
+    // Rubbish creatures
+    for (let i = rubbish.length - 1; i >= 0; i--) {
+      const z = rubbish[i];
+      const lanePlants = plants.filter(p => p.gy === z.row);
+      const frontPlant = lanePlants
+        .filter(p => p.x < z.x)
+        .sort((a, b) => b.x - a.x)[0];
+
+      if (frontPlant && Math.abs(frontPlant.x - z.x) < 32) {
+        z.biteCooldown -= dt;
+        if (z.biteCooldown <= 0) {
+          frontPlant.hp -= 18;
+          z.biteCooldown = 700;
+          if (frontPlant.hp <= 0) {
+            occupied[frontPlant.gy][frontPlant.gx] = null;
+            const idx = plants.indexOf(frontPlant);
+            if (idx >= 0) plants.splice(idx, 1);
+          }
+        }
+      } else {
+        z.x -= z.speed * dt / 1000;
+      }
+
+      if (z.hp <= 0) {
+        rubbish.splice(i, 1);
+        if (Math.random() < 0.7) spawnSun(z.x, z.y - 40, 25);
+        sun += 8;
+        continue;
+      }
+
+      if (z.x < 24) {
+        if (practiceMode) {
+          z.x = W - 25;
+          z.hp = z.maxHp;
+          sun = Math.max(50, sun - 25);
+          updateUI();
+        } else {
+          lives -= 1;
+          rubbish.splice(i, 1);
+          updateUI();
+          if (lives <= 0) endGame(false);
+        }
+      }
+    }
+
+    // Suns auto-collect by themselves after a short time.
+    for (let i = suns.length - 1; i >= 0; i--) {
+      const s = suns[i];
+      s.t += dt;
+      s.age += dt;
+      s.vy += 20 * dt / 1000;
+      s.y += s.vy * dt / 1000 + Math.sin(s.t / 250) * 0.2;
+      if (s.y > H - 20) s.y = H - 20;
+
+      // automatic collection, no clicking needed
+      if (s.age >= 900) {
+        sun += s.amount;
+        suns.splice(i, 1);
+        statusEl.textContent = '+' + s.amount + ' sun';
+      } else if (s.t > 9000) {
+        suns.splice(i, 1);
+      }
+    }
+
+    updateUI();
+  }
+
+  function drawGrass() {
+    ctx.fillStyle = '#8fcd4f';
+    ctx.fillRect(0, 0, W, H);
+
+    for (let i = 0; i < rows; i++) {
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+      ctx.fillRect(gridLeft, gridTop + i * cellH, cols * cellW, cellH);
+    }
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1;
+    for (let c = 0; c <= cols; c++) {
+      const x = gridLeft + c * cellW;
+      ctx.beginPath();
+      ctx.moveTo(x, gridTop);
+      ctx.lineTo(x, gridTop + rows * cellH);
+      ctx.stroke();
+    }
+    for (let r = 0; r <= rows; r++) {
+      const y = gridTop + r * cellH;
+      ctx.beginPath();
+      ctx.moveTo(gridLeft, y);
+      ctx.lineTo(gridLeft + cols * cellW, y);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(0, gridTop, gridLeft, rows * cellH);
+    ctx.fillStyle = '#7d4c2b';
+    ctx.fillRect(10, gridTop + 140, 48, 120);
+    ctx.fillStyle = '#d6b28a';
+    ctx.beginPath();
+    ctx.moveTo(0, gridTop + 140);
+    ctx.lineTo(70, gridTop + 140);
+    ctx.lineTo(35, gridTop + 105);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawPlant(p) {
+    const x = p.x, y = p.y;
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 28, 26, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (p.type === 'sunflower') {
+      ctx.strokeStyle = '#4b8f29';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 25);
+      ctx.lineTo(x, y - 8);
+      ctx.stroke();
+      ctx.fillStyle = '#4b8f29';
+      ctx.beginPath(); ctx.ellipse(x - 14, y + 8, 12, 5, -0.5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 14, y + 10, 12, 5, 0.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#f9d458';
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4;
+        ctx.beginPath();
+        ctx.ellipse(x + Math.cos(a)*20, y - 16 + Math.sin(a)*20, 10, 16, a, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#5d3d12';
+      ctx.beginPath(); ctx.arc(x, y - 8, 18, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#f6e0a5';
+      ctx.beginPath(); ctx.arc(x, y - 8, 12, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#5d3d12';
+      ctx.beginPath(); ctx.arc(x - 4, y - 10, 2, 0, Math.PI*2); ctx.arc(x + 4, y - 10, 2, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y - 4, 4, 0, Math.PI); ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#4b8f29';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(x - 4, y + 24);
+      ctx.lineTo(x - 4, y - 4);
+      ctx.stroke();
+      ctx.fillStyle = '#4b8f29';
+      ctx.beginPath(); ctx.ellipse(x - 18, y + 8, 12, 5, -0.5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 8, y + 10, 12, 5, 0.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#6fcf4a';
+      ctx.beginPath(); ctx.arc(x - 3, y - 4, 20, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#3f9b2f';
+      ctx.beginPath();
+      ctx.moveTo(x + 12, y - 11);
+      ctx.lineTo(x + 34, y - 18);
+      ctx.lineTo(x + 30, y + 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.beginPath(); ctx.arc(x - 10, y - 8, 4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'black';
+      ctx.beginPath(); ctx.arc(x - 9, y - 8, 2, 0, Math.PI*2); ctx.fill();
+    }
+
+    const w = 42, h = 6;
+    const ratio = clamp(p.hp / p.maxHp, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(x - w/2, y - 40, w, h);
+    ctx.fillStyle = ratio > 0.5 ? '#2e7d32' : '#b64040';
+    ctx.fillRect(x - w/2, y - 40, w * ratio, h);
+  }
+
+  function drawRubbish(z) {
+    const x = z.x, y = z.y;
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 30, 26, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // No limbs, no eyes: just a rubbish pile / bin bag shape
+    const bagColor = z.trashy ? '#5a5a5a' : '#7a7a7a';
+    const trimColor = z.trashy ? '#414141' : '#5b5b5b';
+    ctx.fillStyle = bagColor;
+    ctx.beginPath();
+    ctx.moveTo(x - 22, y + 18);
+    ctx.lineTo(x - 15, y - 16);
+    ctx.lineTo(x - 2, y - 24);
+    ctx.lineTo(x + 13, y - 22);
+    ctx.lineTo(x + 22, y + 16);
+    ctx.closePath();
+    ctx.fill();
+
+    // tied top / scrap wrap
+    ctx.fillStyle = trimColor;
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y - 28);
+    ctx.lineTo(x + 10, y - 28);
+    ctx.lineTo(x + 6, y - 20);
+    ctx.lineTo(x - 6, y - 20);
+    ctx.closePath();
+    ctx.fill();
+
+    // trash bits on the bag
+    ctx.fillStyle = z.trashy ? '#d9c17d' : '#a8dfff';
+    ctx.fillRect(x - 14, y - 6, 9, 5);
+    ctx.fillStyle = z.trashy ? '#98d9ff' : '#d9c17d';
+    ctx.fillRect(x + 4, y + 2, 10, 5);
+
+    const w = 44, h = 6;
+    const ratio = clamp(z.hp / z.maxHp, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(x - w/2, y - 50, w, h);
+    ctx.fillStyle = ratio > 0.5 ? '#2e7d32' : '#b64040';
+    ctx.fillRect(x - w/2, y - 50, w * ratio, h);
+  }
+
+  function drawPea(pea) {
+    ctx.fillStyle = '#4fae2f';
+    ctx.beginPath(); ctx.arc(pea.x, pea.y, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2e7d32';
+    ctx.beginPath(); ctx.arc(pea.x - 2, pea.y - 2, 2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawSun(s) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(Math.sin(s.t / 300) * 0.1);
+    ctx.fillStyle = '#f6d44b';
+    for (let i = 0; i < 8; i++) {
+      ctx.rotate(Math.PI / 4);
+      ctx.beginPath();
+      ctx.ellipse(0, -18, 8, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#ffea77';
+    ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    drawGrass();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.24)';
+    ctx.fillRect(0, 0, W, 52);
+    ctx.fillStyle = '#18310f';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Plant Defense', 18, 31);
+    ctx.font = '14px Arial';
+    ctx.fillText('Survive all 5 waves to win.', 165, 31);
+
+    for (const s of suns) drawSun(s);
+    for (const p of plants) drawPlant(p);
+    for (const pea of peas) drawPea(pea);
+    for (const z of rubbish) drawRubbish(z);
+
+    if (currentMouse && !gameOver) {
+      const pos = gridPosFromMouse(currentMouse.x, currentMouse.y);
+      if (pos) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(gridLeft + pos.gx * cellW + 2, gridTop + pos.gy * cellH + 2, cellW - 4, cellH - 4);
+      }
+    }
+  }
+
+  function loop(ts) {
+    if (!lastTime) lastTime = ts;
+    const dt = Math.min(40, ts - lastTime);
+    lastTime = ts;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  resetGame(false);
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
