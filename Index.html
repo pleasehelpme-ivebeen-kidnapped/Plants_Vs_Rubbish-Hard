@@ -229,7 +229,7 @@
   const MAX_WAVES = 5;
 
   const costs = { peashooter: 100, sunflower: 50 };
-  const plantHp = { peashooter: 640, sunflower: 80 };
+  const plantHp = { peashooter: 500, sunflower: 60 };
 
   let selectedPlant = 'peashooter';
   let gameOver = false;
@@ -440,7 +440,7 @@
         p.cooldown -= dt;
         const rubbishInLane = rubbish.find(z => z.row === p.gy && z.x > p.x - 10);
         if (rubbishInLane && p.cooldown <= 0) {
-          peas.push({ x: p.x + 26, y: p.y - 5, vx: 300, damage: 38 });
+          peas.push({ x: p.x + 26, y: p.y - 5, vx: 300, damage: 40 });
           p.cooldown = 1200;
         }
       }
